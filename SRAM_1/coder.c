@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/time.h>
 #include <unistd.h> /* chamadas ao sistema: defs e decls essenciais */
 #include <fcntl.h> /* O_RDONLY, O_WRONLY, O_CREAT, O_* */
 #include <stdio.h>
@@ -25,7 +26,9 @@ int nIt = 0;
 //coder.exe file.txt 64000
 int main(int argc, char *argv[]){
     //--------> Variable Declaration <--------
-
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    unsigned long timer1 = 1000000 * tv.tv_sec + tv.tv_usec;
     //Buffer to store the values of the file. Its going to be passed by reference
     char **blockBuffer;
 
@@ -43,10 +46,10 @@ int main(int argc, char *argv[]){
     char *p;
     long blockSize=strtol(argv[2],&p,10);
 
-
     
-    //blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
-    blockBuffer = fileManage("test2.txt",700,blockBuffer);
+    
+    blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
+    //blockBuffer = fileManage("test3.txt",70000,blockBuffer);
 
     
     
@@ -58,27 +61,24 @@ int main(int argc, char *argv[]){
 
  for (int r = 0; r < M; r++) {
         dictionary[r] = (char *)malloc(N * sizeof(char));
-        memcpy(dictionary[r],"\n",sizeof(char)*100);
+        memset(dictionary[r],"\0",100);
     }
 
 
-/*
+
 for (int i = 1; i <= 256; i++)
-
 {
-
-    int *fixer = malloc(sizeof(char));
-
-    *fixer=i;
-
-    memcpy(dictionary[i],fixer,sizeof(char)*100);
+    char str[2]= "\0";
+    str[0] = (char)i;
+    //write(STDOUT_FILENO,str,1);
+    dictionary[i]=str;
 
 }
 
 dictC = 257;
-*/
 
 
+/*
 memcpy(dictionary[1],"A",sizeof(char)*100);
 memcpy(dictionary[2],"B",sizeof(char)*100);
 memcpy(dictionary[3],"C",sizeof(char)*100);
@@ -102,12 +102,15 @@ memcpy(dictionary[20],"8",sizeof(char)*100);
 memcpy(dictionary[21],"9",sizeof(char)*100);
 memcpy(dictionary[22],"0",sizeof(char)*100);
 dictC=23;
+*/
 
 
 for (size_t i = 0; i < nIt; i++)
     {
         //printf("\n%s",blockBuffer[i]+1);
+        write(STDOUT_FILENO,"\nBLOCK",7);
         enc(blockBuffer[i],dictionary);
+        
     }
 
 
@@ -122,6 +125,10 @@ for (int i = 0; i < M; i++) {
     }
     free(dictionary);
 */
+gettimeofday(&tv,NULL);
+unsigned long timer2 = 1000000 * tv.tv_sec + tv.tv_usec;
+
+printf("ELAPSED TIME: %lu",timer2-timer1);
 return 0;
 }
 
@@ -200,7 +207,6 @@ void enc(char* block,char **dictionary){
    //write(STDOUT_FILENO,dictionary[65],strlen(dictionary[65]));
    
 
-    //@TODO insert all symbols be4
 
     //blockAux needs to be used here since we cant know the length the Pa and Pb blocks before the ending of the algorithm
     *fixer=block[i];
@@ -225,17 +231,7 @@ void enc(char* block,char **dictionary){
             Pb=dest;
 
         }
-        /*
-        j=1;
-        while(j<=i){
-            *blockAux=block[ind+j];
-            memcpy(dictionary[dictC],dest=addArr(Pa,blockAux,dest),sizeof(char)*100);
-            
-            j++;
-            dictC++;
-        }
-        */
-        //Replacement while teach doesnt answear
+
         int lenA = strlen(Pa);
         int lenB = strlen(Pb);
         int k, z;
@@ -250,14 +246,38 @@ void enc(char* block,char **dictionary){
         
         for (i = 0, j = 0; i < iterations; i++, j++) {
             toPrint[lenA + i] = Pb[j];
-            memcpy(dictionary[dictC],toPrint,sizeof(char)*100);
-            dictC++;
-            //@TODO DONT ADD THE ONES IT ALREADY HAS
+            int iD=0;
+            //Adding to dictionary, for some reason couldnt make it its own function
+            //if the value is not on the dictionary
+            if((iD=searchDictionary(toPrint,dictionary))==0){
+                //and if the dictionary is full we gotta clean it, add the starter and reset dictC
+                if(dictC>=M){
+                    //cleaning it
+                    for (size_t i = 0; i < M; i++)
+                    {
+                         memset(dictionary[i],"\0",100);
+                    }
+                    //adding the starter dictionary
+                    for (int i = 1; i <= 256; i++)
+                    {
+                        char str[2]= "\0";
+                        str[0] = (char)i;
+                        dictionary[i]=str;
+                    }
+                    //reseting dictC
+                    dictC=257;
+
+                }
+                memcpy(dictionary[dictC],toPrint,sizeof(char)*100);
+                dictC++;
+            }
+            
+            
         }
         //------------------------------------------------------------------
         ind+=i;
 
-        write(STDOUT_FILENO,Pa,strlen(Pa));
+        //write(STDOUT_FILENO,Pa,strlen(Pa));
         if(lenB>=lenA)  memcpy(Pa,Pb,lenB);
         else{
             memset(Pa+lenB,NULL,lenA-lenB);
@@ -274,7 +294,7 @@ void enc(char* block,char **dictionary){
     }
     
     
-    write(STDOUT_FILENO,Pb,strlen(Pb));
+    //write(STDOUT_FILENO,Pb,strlen(Pb));
     //@TODO output code
     
 
@@ -283,11 +303,12 @@ void enc(char* block,char **dictionary){
 int searchDictionary(char* pattern,char **dictionary){
     
     int i = 1;
-    char *comp = malloc(sizeof(char)*100);
-    memcpy(comp,"\n",sizeof(char)*100);
+    char comp[100];
+    memset(comp,"\0",100);
+    
 
 
-    while(strcmp(dictionary[i],comp)!=0){
+    while(i<M && strcmp(dictionary[i],comp)!=0){
         if(strcmp(dictionary[i],pattern)==0){
             return i;
         }
