@@ -14,7 +14,9 @@ void enc(char *block,char **dictionary);
 char** fileManage(char * iFilePath, long blockSize,char** blockBuffer);
 int searchDictionary(char* pattern,char **dictionary);
 char* addArr(char* first, char* second, char* dest);
+int insertDictionary(char** dictionary,char* pattern);
 long dictC=1;
+int nIt = 0;
 
 
 
@@ -35,25 +37,24 @@ int main(int argc, char *argv[]){
     //---------- // ----------
 
     //--------> Operation <--------
-/*
+
     //1st: Read file
+    
     char *p;
     long blockSize=strtol(argv[2],&p,10);
 
 
     
     blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
+    //blockBuffer = fileManage("test2.txt",700,blockBuffer);
 
-    //---------- // ----------
+    
+    
+    
+    
+ 
 
-    //2nd: Process file
-    //@TODO pass rest of blocks aswell
-    //Number of rows is sizeof(blockBuffer)/sizeof(blockBuffer[0])-the part that isnt filled from the last block
-    //enc(blockBuffer[0]);
-
-    //---------- // ----------
-*/  
-char **dictionary = (char**)malloc(M*sizeof(char));
+char **dictionary = (char**)malloc(M*sizeof(char*));
 for (int r = 0; r < M; r++) {
         dictionary[r] = (char *)malloc(N * sizeof(char));
         memcpy(dictionary[r],"\n",sizeof(char)*100);
@@ -63,10 +64,39 @@ for (int r = 0; r < M; r++) {
 
 memcpy(dictionary[1],"A",sizeof(char)*100);
 memcpy(dictionary[2],"B",sizeof(char)*100);
+memcpy(dictionary[3],"C",sizeof(char)*100);
+memcpy(dictionary[4],"D",sizeof(char)*100);
+memcpy(dictionary[5],"E",sizeof(char)*100);
+memcpy(dictionary[6],"F",sizeof(char)*100);
+memcpy(dictionary[7],"G",sizeof(char)*100);
+memcpy(dictionary[8],"I",sizeof(char)*100);
+memcpy(dictionary[9],"J",sizeof(char)*100);
+memcpy(dictionary[10],"K",sizeof(char)*100);
+memcpy(dictionary[11],"L",sizeof(char)*100);
+memcpy(dictionary[12],"M",sizeof(char)*100);
+memcpy(dictionary[13],"1",sizeof(char)*100);
+memcpy(dictionary[14],"2",sizeof(char)*100);
+memcpy(dictionary[15],"3",sizeof(char)*100);
+memcpy(dictionary[16],"4",sizeof(char)*100);
+memcpy(dictionary[17],"5",sizeof(char)*100);
+memcpy(dictionary[18],"6",sizeof(char)*100);
+memcpy(dictionary[19],"7",sizeof(char)*100);
+memcpy(dictionary[20],"8",sizeof(char)*100);
+memcpy(dictionary[21],"9",sizeof(char)*100);
+memcpy(dictionary[22],"0",sizeof(char)*100);
+
+
+for (size_t i = 0; i < nIt; i++)
+    {
+        //printf("\n%s",blockBuffer[i]+1);
+        enc(blockBuffer[i],dictionary);
+    }
+
+
 //memcpy(dictionary[3],"AB",sizeof(char)*100);
 //memcpy(dictionary[3],"BA",sizeof(char)*100);
-enc("0ABABABBABABAABBABBAB",dictionary);
-//    ABABABBABABAABBABBAB
+//enc("0ABABABBABABAABBABBAB",dictionary);
+//   0ABABABBABABAABBABBAB
 
 /*
 for (int i = 0; i < M; i++) {
@@ -95,27 +125,36 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
     //Seeks for the end of the file (lseek has O(log n) complexity in the worst case but mostly O(1). So its quick to get file size most of the times.
     //It also doesnt have to go through every position, it acquires the last position of the file from meta data written on file creation
     fseek(inputFile,0,SEEK_END);
-    nBlocks=ceil((ftell(inputFile)/blockSize))+1; //number of block is = round_up(file_size/block_size). rounded up since no byte is to be left out
+    long fileSize =ftell(inputFile);
+    nBlocks=ceil((fileSize/blockSize))+1; //number of block is = round_up(file_size/block_size). rounded up since no byte is to be left out
+    nIt = nBlocks;  
     fseek(inputFile,0,SEEK_SET);
+    printf("\nN Size: %ld",nBlocks);
+    printf("\nBlocksize: %ld",blockSize);
+
+    long toRead = 0;
 
     //Allocates the amount of memory needed for the matrix rows (and since C99, you don't need to individually allocate memory for each row itself)
-    char ** aux = malloc(nBlocks*sizeof(char*));
+    char ** aux = malloc((nBlocks)*sizeof(char*));
+
     
 
     //Cycle that goes through the blocks on the file, checks to see if they are able to be read, stores values read into the buffer and seeks for the next block
     for(int i=0;i<nBlocks;i++){
         //probably doesnt need the test and the aux variable, but kept getting werid values without them
-        char * test = (char*)malloc(blockSize*sizeof(char));
-        write(STDOUT_FILENO,&i,sizeof(i));
-        if(fread(test,1,blockSize,inputFile)==0){
-            //just to print the block where the error happened
-            write(STDOUT_FILENO,"\nError reading block number: ",29);
-            
-            char c = i+'0';
-            write(STDOUT_FILENO,c,1);
+        //the test+1 is because, since in the enc fucntion the indexing is started at 1, it needs here to be loaded into trhe second position: 1.
+        char * test = (char*)malloc((blockSize+1)*sizeof(char));
+        //write(STDOUT_FILENO,&i,sizeof(i));
+        long lastPos = ftell(inputFile);
+        if(fread(test+1,1,blockSize,inputFile)==0){
+            write(STDOUT_FILENO,"\nError reading block number: ",29);       
         }else{
             aux[i]=test;
         }
+        
+        //the first positon is atributed into a '0' ofr the same reason has its being read into the second position --> indexing in enc is started at 1
+        aux[i][0]='0';
+        //printf("\n%s",aux[i]);
     }
     //important to do since we are passing by reference
     blockBuffer=aux;
@@ -191,15 +230,19 @@ void enc(char* block,char **dictionary){
         
         for (i = 0, j = 0; i < iterations; i++, j++) {
             toPrint[lenA + i] = Pb[j];
-            memcpy(dictionary[dictC],toPrint,sizeof(char)*100);
-            dictC++;
-            //@TODO DONT ADD THE ONES IT ALREADY HAS
+            insertDictionary(dictionary,toPrint);
+            
         }
         //------------------------------------------------------------------
         ind+=i;
-        
-        write(STDOUT_FILENO,Pa,sizeof(Pa));
-        memcpy(Pa,Pb,sizeof(Pb));
+
+        write(STDOUT_FILENO,Pa,strlen(Pa));
+        if(lenB>=lenA)  memcpy(Pa,Pb,lenB);
+        else{
+            memset(Pa+lenB,NULL,lenA-lenB);
+            memcpy(Pa,Pb,lenB);
+            
+        }
         
         
         memset(toPrint,0,sizeof(char)*100);
@@ -210,8 +253,8 @@ void enc(char* block,char **dictionary){
     }
     
     
-    write(STDOUT_FILENO,Pb,sizeof(Pb));
-    //output code
+    write(STDOUT_FILENO,Pb,strlen(Pb));
+    //@TODO output code
     
 
 }
@@ -223,7 +266,7 @@ int searchDictionary(char* pattern,char **dictionary){
     memcpy(comp,"\n",sizeof(char)*100);
 
 
-    while(strcmp(dictionary[i],comp)!=0){
+    while(i<M && strcmp(dictionary[i],comp)!=0){
         if(strcmp(dictionary[i],pattern)==0){
             return i;
         }
@@ -263,4 +306,23 @@ char* addArr(char* first, char* second, char* dest){
 
     return dest;
 
+}
+
+int insertDictionary(char** dictionary,char* pattern){
+
+    int iD=0;
+    if((iD=searchDictionary(pattern,dictionary))==0){
+    if(dictC>=M){
+        for (size_t i = 0; i < M; i++)
+        {
+            memcpy(dictionary[i],"\n",sizeof(char)*100);
+        }
+        dictC = 0;
+    }
+    memcpy(dictionary[dictC],pattern,sizeof(char)*100);
+    dictC++;
+    }else return iD;
+
+    
+    return dictC;
 }
