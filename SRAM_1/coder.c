@@ -10,11 +10,11 @@
 
 const int M = 65536;
 const int N = 100;
-void enc(char *block,char **dictionary);
+void enc(char *block,char dictionary[65536][100]);
 char** fileManage(char * iFilePath, long blockSize,char** blockBuffer);
-int searchDictionary(char* pattern,char **dictionary);
+int searchDictionary(char* pattern,char dictionary[65536][100]);
 char* addArr(char* first, char* second, char* dest);
-int insertDictionary(char** dictionary,char* pattern);
+char** insertDictionary(char dictionary[65536][100],char* pattern);
 long dictC=1;
 int nIt = 0;
 
@@ -45,45 +45,33 @@ int main(int argc, char *argv[]){
 
 
     
-    blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
-    //blockBuffer = fileManage("test2.txt",700,blockBuffer);
+    //blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
+    blockBuffer = fileManage("test3.txt",70000,blockBuffer);
 
     
     
     
     
- 
+char dictionary[65536][100];
 
-char **dictionary = (char**)malloc(M*sizeof(char*));
-for (int r = 0; r < M; r++) {
-        dictionary[r] = (char *)malloc(N * sizeof(char));
-        memcpy(dictionary[r],"\n",sizeof(char)*100);
+
+
+
+memset(dictionary,0,sizeof(dictionary[0][0])*M*N);
+ for (int r = 0; r < M; r++) {
+        //memset(dictionary[r],NULL,100);
+        memcpy(dictionary[r],"\0",sizeof(char)*1);
+        
     }
 
+for (int i = 1; i <= 256; i++)
+{
+    int *fixer = malloc(sizeof(int));
+    *fixer=i;
+    memcpy(dictionary[i],fixer,sizeof(char)*100);
+}
+dictC = 257;
 
-
-memcpy(dictionary[1],"A",sizeof(char)*100);
-memcpy(dictionary[2],"B",sizeof(char)*100);
-memcpy(dictionary[3],"C",sizeof(char)*100);
-memcpy(dictionary[4],"D",sizeof(char)*100);
-memcpy(dictionary[5],"E",sizeof(char)*100);
-memcpy(dictionary[6],"F",sizeof(char)*100);
-memcpy(dictionary[7],"G",sizeof(char)*100);
-memcpy(dictionary[8],"I",sizeof(char)*100);
-memcpy(dictionary[9],"J",sizeof(char)*100);
-memcpy(dictionary[10],"K",sizeof(char)*100);
-memcpy(dictionary[11],"L",sizeof(char)*100);
-memcpy(dictionary[12],"M",sizeof(char)*100);
-memcpy(dictionary[13],"1",sizeof(char)*100);
-memcpy(dictionary[14],"2",sizeof(char)*100);
-memcpy(dictionary[15],"3",sizeof(char)*100);
-memcpy(dictionary[16],"4",sizeof(char)*100);
-memcpy(dictionary[17],"5",sizeof(char)*100);
-memcpy(dictionary[18],"6",sizeof(char)*100);
-memcpy(dictionary[19],"7",sizeof(char)*100);
-memcpy(dictionary[20],"8",sizeof(char)*100);
-memcpy(dictionary[21],"9",sizeof(char)*100);
-memcpy(dictionary[22],"0",sizeof(char)*100);
 
 
 for (size_t i = 0; i < nIt; i++)
@@ -164,7 +152,7 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
     return blockBuffer;
 }
 
-void enc(char* block,char **dictionary){
+void enc(char* block,char dictionary[65536][100]){
     
     char *Pa;
     char *Pb;
@@ -180,7 +168,7 @@ void enc(char* block,char **dictionary){
     char toPrint[100];
    
 
-    //@TODO insert all symbols be4
+    
 
     //blockAux needs to be used here since we cant know the length the Pa and Pb blocks before the ending of the algorithm
     *fixer=block[i];
@@ -230,7 +218,7 @@ void enc(char* block,char **dictionary){
         
         for (i = 0, j = 0; i < iterations; i++, j++) {
             toPrint[lenA + i] = Pb[j];
-            insertDictionary(dictionary,toPrint);
+            dictionary = insertDictionary(dictionary,toPrint);
             
         }
         //------------------------------------------------------------------
@@ -259,22 +247,19 @@ void enc(char* block,char **dictionary){
 
 }
 
-int searchDictionary(char* pattern,char **dictionary){
+int searchDictionary(char* pattern,char dictionary[65536][100]){
     
     int i = 0;
-    char *comp = malloc(sizeof(char)*100);
-    memcpy(comp,"\n",sizeof(char)*100);
+    char *comp = "\n";
+    
+    
 
-
-    while(i<M && strcmp(dictionary[i],comp)!=0){
+    while(i<M && dictionary[i][0]!='\0'){
         if(strcmp(dictionary[i],pattern)==0){
             return i;
         }
         i++;
     }
-    
-
-    
     return 0;
 }
 
@@ -308,21 +293,29 @@ char* addArr(char* first, char* second, char* dest){
 
 }
 
-int insertDictionary(char** dictionary,char* pattern){
+char** insertDictionary(char dictionary[65536][100],char* pattern){
 
     int iD=0;
     if((iD=searchDictionary(pattern,dictionary))==0){
     if(dictC>=M){
         for (size_t i = 0; i < M; i++)
         {
-            memcpy(dictionary[i],"\n",sizeof(char)*100);
+            memcpy(dictionary[i],"\0",sizeof(char)*1);
         }
         dictC = 0;
+
+        for (int i = 1; i <= 256; i++)
+        {
+            int *fixer = malloc(sizeof(int));
+            *fixer=i;
+            memcpy(dictionary[i],fixer,sizeof(char));
+        }
+        dictC = 257;
     }
     memcpy(dictionary[dictC],pattern,sizeof(char)*100);
     dictC++;
     }else return iD;
 
     
-    return dictC;
+    return dictionary;
 }
