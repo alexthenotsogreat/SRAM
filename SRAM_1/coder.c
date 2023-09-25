@@ -20,30 +20,139 @@
 
 
 
-
+#define ND 256
 
 const int M = 65536;
 
 const int N = 100;
 
-void enc(char* block,char **dictionary);
+typedef struct TrieNode TrieNode;
+
+struct TrieNode {
+    // The Trie Node Structure
+    // Each node has N children, starting from the root
+    // and a flag to check if it's a leaf node
+    unsigned char data; // Storing for printing purposes only
+    TrieNode* children[ND];
+    int is_leaf;
+    int code;
+};
+
+void enc(char* block,TrieNode* root);
 
 char** fileManage(char * iFilePath, long blockSize,char** blockBuffer);
 
-int searchDictionary(char* pattern,char **dictionary);
-
 char* addArr(char* first, char* second, char* dest);
-
-int insertDictionary(char **dictionary, char* pattern);
 
 long dictC=1;
 
 int nIt = 0;
 
 
+//Function quicker than sprinft(str,"%d",the int) but doesnt add comma --> further optimization would require to use this and add a comma manually
+void intToString(int num, char* str) {
+    int i = 0;
+    if (num == 0) {
+        str[i++] = '0';
+        str[i] = '\0';
+        return;
+    }
 
+    int isNegative = 0;
+    if (num < 0) {
+        isNegative = 1;
+        num = -num;
+    }
 
+    while (num != 0) {
+        int rem = num % 10;
+        str[i++] = rem + '0';
+        num = num / 10;
+    }
 
+    if (isNegative)
+        str[i++] = '-';
+
+    str[i] = '\0';
+
+    // Reverse the string
+    int length = i;
+    for (int j = 0; j < length / 2; j++) {
+        char temp = str[j];
+        str[j] = str[length - j - 1];
+        str[length - j - 1] = temp;
+    }
+}
+
+TrieNode* make_trienode(unsigned char data) {
+    // Allocate memory for a TrieNode
+    TrieNode* node = (TrieNode*) calloc (1, sizeof(TrieNode));
+    for (int i=0; i<ND; i++)
+        node->children[i] = NULL;
+    node->is_leaf = 2;
+    node->data = data;
+    return node;
+}
+
+void free_trienode(TrieNode* node) {
+    // Free the trienode sequence
+    for(int i=0; i<ND; i++) {
+        if (node->children[i] != NULL) {
+            free_trienode(node->children[i]);
+        }
+        else {
+            continue;
+        }
+    }
+    free(node);
+}
+
+TrieNode* insert_trie(TrieNode* root, unsigned char* word) {
+    // Inserts the word onto the Trie
+    // ASSUMPTION: The word only has lower case characters
+    TrieNode* temp = root;
+    unsigned int idx;
+    for (int i=0; word[i] != '\0'; i++) {
+        // Get the relative position in the alphabet list
+         idx = (int) word[i];
+        if (temp->children[idx] == NULL) {
+            // If the corresponding child doesn't exist,
+            // simply create that child!
+            temp->children[idx] = make_trienode(word[i]);
+        }
+        else {
+            // Do nothing. The node already exists
+        }
+        // Go down a level, to the child referenced by idx
+        // since we have a prefix match
+        temp = temp->children[idx];
+    }
+    // At the end of the word, mark this node as the leaf node
+    
+    temp->is_leaf = 1;
+    temp->code=dictC;
+    return root;
+}
+
+int search_trie(TrieNode* root, unsigned char* word)
+{
+    // Searches for word in the Trie
+    TrieNode* temp = root;
+
+    for(int i=0; word[i]!='\0'; i++)
+    {
+        int position = word[i];
+        if(temp == NULL) return 0;
+        if (temp->children[position] == NULL)
+            return 0;
+        temp = temp->children[position];
+    }
+   if (temp != NULL)
+    if(temp->is_leaf != NULL)
+        if(temp->is_leaf==1) 
+        return temp->code;
+    return 0;
+}
 
 
 
@@ -54,199 +163,45 @@ int nIt = 0;
 
 int main(int argc, char *argv[]){
 
-    //--------> Variable Declaration <--------
-
-    
-
     //Buffer to store the values of the file. Its going to be passed by reference
-
     char **blockBuffer;
-
-
-
-    //---------- // ----------
-
-
-
-    //--------> Cleaning dictionary <--------
-
-    
-
-
-
-    //---------- // ----------
-
-
 
     //--------> Operation <--------
 
-
-
     //1st: Read file
 
-    
-
     char *p;
-
-    long blockSize=strtol(argv[2],&p,10);
-
-
-
-    
-
-    
+    long blockSize=strtol(argv[2],&p,10);   
 
     //blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
-
     blockBuffer = fileManage("test3.txt",100000,blockBuffer);
 
 
 
+    //2nd: Making dictionary and filling with ASCII Table
     
+    TrieNode* root = make_trienode('\0');
 
-    
-
-    
-
-    
-
- 
+        //printf("\n%s",blockBuffer[i]+1);
+    dictC=1;
+    for (int i = 1; i <= ND; i++)
+    {
+        unsigned char str[2]= "\0";
+        str[0] = (unsigned char)i;
+        root = insert_trie(root, str);
+        dictC++;
+    }
 
    
 
-    char **dictionary = (char**)malloc(M*sizeof(char*));
-
-
-
- for (int r = 0; r < M; r++) {
-
-        dictionary[r] = (char *)malloc(N * sizeof(char));
-
-        memset(dictionary[r],"\0",100);
-
-    }
-
-
-
-
-
-
-
-for (int i = 1; i <= 256; i++)
-
-{
-
-    char str[2]= "\0";
-
-    str[0] = (char)i;
-
-    //write(STDOUT_FILENO,str,1);
-
-    dictionary[i]=str;
-
-
-
-}
-
-
-
-dictC = 257;
-
-
-
-/*
-
-
-
-memcpy(dictionary[1],"A",sizeof(char)*100);
-
-memcpy(dictionary[2],"B",sizeof(char)*100);
-
-memcpy(dictionary[3],"C",sizeof(char)*100);
-
-memcpy(dictionary[4],"D",sizeof(char)*100);
-
-memcpy(dictionary[5],"E",sizeof(char)*100);
-
-memcpy(dictionary[6],"F",sizeof(char)*100);
-
-memcpy(dictionary[7],"G",sizeof(char)*100);
-
-memcpy(dictionary[8],"I",sizeof(char)*100);
-
-memcpy(dictionary[9],"T",sizeof(char)*100);
-
-memcpy(dictionary[10],"K",sizeof(char)*100);
-
-memcpy(dictionary[11],"L",sizeof(char)*100);
-
-memcpy(dictionary[12],"M",sizeof(char)*100);
-
-memcpy(dictionary[13],"1",sizeof(char)*100);
-
-memcpy(dictionary[14],"2",sizeof(char)*100);
-
-memcpy(dictionary[15],"3",sizeof(char)*100);
-
-memcpy(dictionary[16],"4",sizeof(char)*100);
-
-memcpy(dictionary[17],"5",sizeof(char)*100);
-
-memcpy(dictionary[18],"6",sizeof(char)*100);
-
-memcpy(dictionary[19],"7",sizeof(char)*100);
-
-memcpy(dictionary[20],"8",sizeof(char)*100);
-
-memcpy(dictionary[21],"9",sizeof(char)*100);
-
-memcpy(dictionary[22],"0",sizeof(char)*100);
-
-dictC=23;
-
-
-
-*/
-
-
-
-for (size_t i = 0; i < nIt; i++)
-
+    //3rd: Encripts nIt amount of times, calculated in function of the size of the Block <--------
+    for (size_t i = 0; i < nIt; i++)
     {
-
-        //printf("\n%s",blockBuffer[i]+1);
-
         write(STDOUT_FILENO,"\nBLOCK\n",8);
-
-        enc(blockBuffer[i],dictionary);
-
-        
-
+        enc(blockBuffer[i],root);     
     }
 
-
-
-
-
-//memcpy(dictionary[3],"AB",sizeof(char)*100);
-
-//memcpy(dictionary[3],"BA",sizeof(char)*100);
-
-//enc("0ABABABBABABAABBABBAB",dictionary);
-
-//   0ABABABBABABAABBABBAB
-
-
-
-
-
-
-
-
-
-
-
-free(dictionary);
+    //---------- // ----------
 
 return 0;
 
@@ -262,8 +217,6 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
 
     //--------> Variable Declaration <--------
 
-    
-
     //Variable for the input file
 
     FILE* inputFile;
@@ -272,11 +225,7 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
 
     long nBlocks = 0;
 
-
-
-    //--------> File Reading <--------
-
-    
+    //--------> File Reading <--------   
 
     //Opens input File
 
@@ -311,12 +260,7 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
     //Allocates the amount of memory needed for the matrix rows (and since C99, you don't need to individually allocate memory for each row itself)
 
     char ** aux = malloc((nBlocks)*sizeof(char*));
-
-
-
-    
-
-
+ 
 
     //Cycle that goes through the blocks on the file, checks to see if they are able to be read, stores values read into the buffer and seeks for the next block
 
@@ -358,417 +302,191 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
 
     //---------- // ----------
 
-
-
-    
-
     return blockBuffer;
 
 }
 
 
 
-void enc(char* block,char **dictionary){
+void enc(char* block,TrieNode* root){
 
-    
-    bool check = true;
-    char *Pa="";
-
-    char *Pb="";
+    //Enc algorithm variables
+    char *Pa = malloc(sizeof(char));
+    char *Pb;
 
     int ind = 2;
-
     int i = 1;
 
     int code = 0;
-
+    //---------- // ----------
     int j=0;
 
     long sizeBlock = strlen(block);
 
+    //Varibles used to keep all the code values and then print them all at once. codeStackHelper just for arithmatics.
+    unsigned char *codeStack=(unsigned char*)malloc(sizeof(unsigned char)*sizeBlock);
+    unsigned char *codeStackHelper=(unsigned char*)malloc(sizeof(unsigned char));
+    //---------- // ----------
+
+    //Arithmatics stuff
     char *dest;
+    unsigned char *blockAux = malloc(sizeof(unsigned char));
+    memset(blockAux,0,sizeof(unsigned char));
 
-    char *blockAux = malloc(sizeof(char));
-
-    memset(blockAux,0,sizeof(char));
-
-    char *fixer = malloc(sizeof(char));
-
-    memset(fixer,0,sizeof(char));
+    unsigned char *fixer = malloc(sizeof(unsigned char));
+    memset(fixer,0,sizeof(unsigned char));
 
     char *fixer2 = malloc(sizeof(char));
+    memset(fixer2,0,sizeof(unsigned char));
 
-    memset(fixer2,0,sizeof(char));
-
-    char toPrint[100];
-
-
-
+    unsigned char toPrint[100];
+    memset(toPrint,NULL,100*sizeof(unsigned char));
+    //---------- // ----------
     struct timeval tv;
 
+    strncpy(Pa,block,2);
+    Pa[0]=Pa[1];
+    Pa[1]='\0';
+    
+    //More arihmatics stuff that we're scared to move
+    char done2[1];
+    char codeC;
+    //---------- // ----------
 
 
-   //write(STDOUT_FILENO,dictionary[65],strlen(dictionary[65]));
-
-
-
-
-
-    //blockAux needs to be used here since we cant know the length the Pa and Pb blocks before the ending of the algorithm
-
-    *fixer=block[i];
-
-    Pa=fixer;
-
-
-
+    //Enc algorithm
     while(i+ind<=sizeBlock){
 
         int i = 1;
 
-        *fixer2=block[ind];
+        char done[1];
+        done[0]=block[ind];
+        Pb=done;
+       
+        code=search_trie(root,Pa);
 
-        Pb=fixer2;
+        //Keeps the code in codeStack to be printed, slowest part of the algorithm
+        sprintf(codeStackHelper,"%d,",code);
+        strcat(codeStack,codeStackHelper);
+        //---------- // ----------
 
-        
-
-        code=searchDictionary(Pa,dictionary);
-
-        
-
-        *blockAux=block[ind+i];
-
-        //Finding next Pbs
-
-        //blockAux is needed to convert char to array (to be concatenated with Pb) in a safe manner
-
-        
-
-        while ((ind+i<sizeBlock) && (searchDictionary(dest=addArr(Pb,blockAux,dest),dictionary)))
-
+        done2[0]=block[ind+i];
+        blockAux=done2;
+        //Finding next Pb
+               
+        while ((ind+i<sizeBlock) && (search_trie(root,dest=addArr(Pb,blockAux,dest))))
         {
-
             i++;
 
             //has to be updated, inside the loop, after the incrementation on i, in order to be checked again in the while condition
-
-            *blockAux=block[ind+i];
-
-
-
-            Pb=dest;
-
-
-
+            done2[0]=block[ind+i];
+            blockAux=block[ind+i];
+            Pb=dest;        
         }
 
-
-
+        //Operators for array math
         int lenA = strlen(Pa);
-
         int lenB = strlen(Pb);
-
         int k, z;
-
-
-
-        // Determine the maximum number of iterations
+        //---------- // ----------
 
         int iterations = lenB;
 
-        //@TODO check size of Pa+Pb if bigger than toPrint gotta do smth
-
         if(lenA+lenB<=N){
-
-        for (int l = 0; l < lenA; l++)
-
-        {
-
-            toPrint[l]=Pa[l];
-
-        }
-
-        
-
-        for (k = 0, j = 0; k < iterations; k++, j++) {
-
-            toPrint[lenA + k] = Pb[j];
-
-            int iD=0;
-
-            //Adding to dictionary, for some reason couldnt make it its own function
-
-            //if the value is not on the dictionary
-
-            if((iD=searchDictionary(toPrint,dictionary))==0){
-
-                //and if the dictionary is full we gotta clean it, add the starter and reset dictC
-
-                if(dictC>=M){
-                    //check = false;
-                    
-
-                    //cleaning it
-
-                    for (size_t b = 0; b < M; b++)
-
-                    {
-
-                         memset(dictionary[b],"\0",100);
-
-                    }
-
-                    //adding the starter dictionary
-
-                    for (int g = 1; g <= 256; g++)
-
-                    {
-
-                        char str[2]= "\0";
-
-                        str[0] = (char)g;
-
-                        dictionary[g]=str;
-
-                    }
-
-                    //reseting dictC
-
-                    dictC=257;
-
-
-                    
-                }
-
-                
-                
-                memcpy(dictionary[dictC],toPrint,sizeof(char)*100);
-
-                dictC++;
-
+            for (int l = 0; l < lenA; l++)
+            {
+                toPrint[l]=Pa[l];
             }
 
-            
-
-            
-
-        }
-
         
-
-        //------------------------------------------------------------------
-
         
+            for (k = 0, j = 0; k < iterations; k++, j++) {
+                toPrint[lenA + k] = Pb[j];
+                int iD=0;
 
+                //Adding to dictionary, for some reason couldnt make it its own function
+                //if the value is not on the dictionary
+
+                if((iD=search_trie(root,toPrint))==0){
+
+                    //and if the dictionary is full we gotta clean it, add the starter and reset dictC
+                    if(dictC>=M){
+                        //cleaning it
+                        free_trienode(root);
+
+                        //adding the starter dictionary
+                        root = make_trienode('\0');
+                        dictC=0;
+
+                        for (int i = 1; i <= ND; i++)
+                        {
+                            unsigned char str[2]= "\0";
+                            str[0] = (unsigned char)i;
+                            root = insert_trie(root, str);
+                            dictC++;
+                        }       
+                    }
+                    //finally inserts it
+                    insert_trie(root,toPrint);
+                    dictC++;
+                }
+            }
         }
 
         ind+=i;
 
-        //write(STDOUT_FILENO,Pa,strlen(Pa));
-
+        //Dealing with sizes of the Pa and Pb
         if(lenB>=lenA)  memcpy(Pa,Pb,lenB);
 
         else{
-
             memset(Pa+lenB,NULL,lenA-lenB);
-
-            memcpy(Pa,Pb,lenB);
-
-            
-
+            memcpy(Pa,Pb,lenB);         
         }
-
+        //---------- // ----------
         
-
-        
-
+        //Gotta clean stuff
         memset(toPrint,0,sizeof(char)*100);
-
-
-
-        
-
-        
-
-        
-
     }
-
-    
-
-    
-
-    //write(STDOUT_FILENO,Pb,strlen(Pb));
-
-    //@TODO output code
-
-    free(blockAux);
-
-    //free(fixer);
-
-    //free(fixer2);
 
     memset(dest,0,strlen(dest));
     memset(fixer,0,strlen(fixer));
     memset(fixer2,0,strlen(fixer2));
+    //---------- // ----------
 
+    //Outputs Pb at the end of algoritm
+    code=search_trie(root,Pb);
+    sprintf(codeStackHelper,"%d,",code);     
+    strcat(codeStack,codeStackHelper);
 
-
-}
-
-
-
-int searchDictionary(char* pattern,char **dictionary){
-
-    
-
-    int i = 1;
-
-    bool check = true;
-
-    char str[2]= "\0";
-
-    while(i<M && dictionary[i][0]!='\032'){
-
-        //strcmp(dictionary[i],pattern)==0
-
-        if(check && strlen(pattern)>=2){
-
-            i=257;
-
-            check=false;
-
-            }
-
-        if(i<257){
-
-            
-
-            str[0] = (char)i;
-
-            if(strcmp(str,pattern)==0)
-
-             return i;
-
-
-
-        }
-
-        else if(strcmp(dictionary[i],pattern)==0){
-
-            return i;
-
-        }
-
-        i++;
-
-    }
-
-    
-
-
-
-    
-
-    return 0;
+    //--------> File writing <--------
+    //instead of opening and closing file every time the code changes, it stores all in codeStack and prints it all at the end
+    FILE *outputFile;
+    outputFile=fopen("output.txt","w");
+    fwrite(codeStack,sizeof(unsigned char),strlen(codeStack),outputFile);
+    //---------- // ----------
 
 }
 
-
-
-
-
+//Should probably just use strcat
 char* addArr(char* first, char* second, char* dest){
 
-
-
     int firstN = strlen(first);
-
-    int secondN = strlen(second);
-
-    
-
-
-
+    int secondN = strlen(second);   
     char *total;
-
     dest = (char*)malloc(firstN+secondN);
-
-
-
     int j = 0;
-
     
-
     for (size_t i = 0; i < firstN; i++)
-
     {
-
         dest[j]=first[i];
-
         j++;
-
     }
-
-
 
     for (size_t i = 0; i < secondN; i++)
-
     {
-
         dest[j]=second[i];
-
         j++;
-
     }
-
-    
-
-    
-
-
 
     return dest;
-
-
-
 }
-
-
-
-int insertDictionary(char **dictionary,char* pattern){
-
-
-
-    int iD=0;
-
-    if((iD=searchDictionary(pattern,dictionary))==0){
-
-    if(dictC>=M){
-
-        for (size_t i = 0; i < M; i++)
-
-        {
-
-            memcpy(dictionary[i],"\n",sizeof(char)*100);
-
-        }
-
-        dictC = 0;
-
-    }
-
-    memcpy(dictionary[dictC],pattern,sizeof(char)*100);
-
-    dictC++;
-
-    }else return iD;
-
-
-
-    
-
-    return dictC;
-
-}
-
