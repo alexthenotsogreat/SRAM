@@ -163,20 +163,26 @@ int search_trie(TrieNode* root, unsigned char* word)
 
 int main(int argc, char *argv[]){
 
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock();
     //Buffer to store the values of the file. Its going to be passed by reference
     char **blockBuffer;
 
     //--------> Operation <--------
 
     //1st: Read file
-
+    
     char *p;
     long blockSize=strtol(argv[2],&p,10);   
 
     //blockBuffer = fileManage(argv[1],blockSize,blockBuffer);
-    blockBuffer = fileManage("test3.txt",100000,blockBuffer);
+    blockBuffer = fileManage("test3.txt",10000,blockBuffer);
 
-
+    printf("\nDa autoria de Eduardo Cardoso (a89627) e Catarina Neves (a93088).");
+    printf("\nFicheiro de entrada: %s. Ficheiro de saída: output.txt.",argv[2]);
+    printf("\nTamanho máximo do dicionario: %d. Tipo de limpeza: remoção de todas as entradas e restituicao das 256 entradas ASCII",M);
+    
 
     //2nd: Making dictionary and filling with ASCII Table
     
@@ -197,12 +203,18 @@ int main(int argc, char *argv[]){
     //3rd: Encripts nIt amount of times, calculated in function of the size of the Block <--------
     for (size_t i = 0; i < nIt; i++)
     {
-        write(STDOUT_FILENO,"\nBLOCK\n",8);
+        write(STDOUT_FILENO,"\nBLOCK: ",8);
         enc(blockBuffer[i],root);     
     }
 
     //---------- // ----------
 
+end = clock();
+ 
+cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+printf("\nTime used: %f",cpu_time_used);
+printf("\nProcessados %d blocos, de tamanho %d bytes. O ultimo de tamanho %d bytes.",nIt,strlen(blockBuffer[0]),strlen(blockBuffer[nIt-1]));
 return 0;
 
 }
@@ -258,12 +270,8 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
 
 
     //Allocates the amount of memory needed for the matrix rows (and since C99, you don't need to individually allocate memory for each row itself)
-
     char ** aux = malloc((nBlocks)*sizeof(char*));
- 
-
     //Cycle that goes through the blocks on the file, checks to see if they are able to be read, stores values read into the buffer and seeks for the next block
-
     for(int i=0;i<nBlocks;i++){
 
         //probably doesnt need the test and the aux variable, but kept getting werid values without them
@@ -285,23 +293,12 @@ char** fileManage(char * iFilePath, long blockSize,char** blockBuffer){
             aux[i]=test;
 
         }
-
-        
-
         //the first positon is atributed into a '0' ofr the same reason has its being read into the second position --> indexing in enc is started at 1
-
         aux[i][0]='0';
-
-        //printf("\n%s",aux[i]);
-
     }
-
     //important to do since we are passing by reference
-
     blockBuffer=aux;
-
     //---------- // ----------
-
     return blockBuffer;
 
 }
